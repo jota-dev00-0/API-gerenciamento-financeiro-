@@ -1,35 +1,38 @@
 from models.transacao_model import Transacao
-from database.fake_db import fake_db
-from typing import Optional
+from typing import Optional, List
 def exibir_transacao(transacao : Transacao):
     return {
         "message" : f"transacao no VALOR de {transacao.valor} do TIPO {transacao.tipo} ",
+        "id" : transacao.id,
+        "valor": transacao.valor,
+        "tipo": transacao.tipo,
+        "descricao": transacao.descricao,
+        "data": transacao.data.isoformat() if transacao.data else None
+    }
+    
+def exibir_transacoes(transacoes : List[Transacao]):
+    return {
+        "quantidade de transacoes" : len(transacoes),
+        "transacoes" : [exibir_transacao(t) for t in transacoes]
+    }
+    
+def criacao_sucedida(transacao : Transacao):
+    return{
+        "message" : "transacao criada com sucesso",
+        "tipo" : transacao.tipo,
         "id" : transacao.id
     }
     
-def exibir_transacoes():
-    return {
-        "quantidade de transacoes" : len(fake_db),
-        "transacoes" : fake_db
-    }
-    
-def criacao_sucedida(id : int, tipo : Optional[str] = None):
-    return{
-        "message" : "transacao criada com sucesso",
-        "tipo" : tipo,
-        "id" : id
-    }
-    
-def atualizacao_sucedida(id : int):
+def atualizacao_sucedida(transacao : Transacao):
     return{
         "message": "Transação atualizada com sucesso", 
-        "id": id
+        "id": transacao.id
     }
     
-def delecao_sucedida(id : id):
+def delecao_sucedida(transacao : Transacao):
     return{
         "message": "Transação deleta com sucesso", 
-        "id": id
+        "id": transacao.id
     }
     
 def exibir_saldo_receita_despesa(despesa : float, receita : float, saldo : float):

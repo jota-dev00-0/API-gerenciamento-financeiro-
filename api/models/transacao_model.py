@@ -16,6 +16,9 @@ class Transacao (BaseModel):
              raise ValueError("O tipo deve ser 'entrada' ou 'saida'")
         return value.lower()
     
+class TransacaoCreate (Transacao):
+    pass 
+
 class TransacaoUpdate(BaseModel):
     valor: Optional[float] = None
     tipo: Optional[str] = None
