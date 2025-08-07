@@ -2,7 +2,7 @@ from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import datetime
 
-class Transacao (BaseModel):
+class TransacaoBase (BaseModel):
     id : int
     valor : float
     tipo : str
@@ -16,9 +16,17 @@ class Transacao (BaseModel):
              raise ValueError("O tipo deve ser 'entrada' ou 'saida'")
         return value.lower()
     
-class TransacaoCreate (Transacao):
+class TransacaoCreate (TransacaoBase):
     pass 
 
+class Transacao (TransacaoBase):
+    id: int
+    data: datetime
+    user_id: str
+    
+    class Config:
+        from_attributes = True
+        
 class TransacaoUpdate(BaseModel):
     valor: Optional[float] = None
     tipo: Optional[str] = None
