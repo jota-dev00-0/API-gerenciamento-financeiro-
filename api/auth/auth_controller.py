@@ -1,12 +1,14 @@
 from fastapi import APIRouter
-from models.user_model import UserDB, UserCreate
-from auth_service import register_user
+from pydantic import BaseModel
+from models.user_model import UserDB, UserCreate, TokenResponse
+from auth.auth_service import register_user, login_user_service
 
-router = APIRouter()
-@router.post("/auth/register" , response_model=UserDB)
+router = APIRouter(prefix="/auth", tags=["Authenticate"])
+
+@router.post("/register" ,summary="Registrar um User" ,response_model=UserDB)
 async def registrar_user (user_data : UserCreate):
-    await register_user(user_data)
+    return await register_user(user_data)
 
-@router.post("/auth/login" , response_model="")
+@router.post("/login" ,summary="Validar um User" ,response_model=TokenResponse )
 async def login_user(credentials : UserCreate):
-    await login_user(credentials)
+    return await login_user_service(credentials)

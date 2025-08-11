@@ -1,6 +1,6 @@
 [project]
 name = "api"
-version = "0.1.0"
+version = "0.4.0"
 description = ""
 authors = [
     {name = "jota-dev00-0",email = "jpar.dev00@gmail.com"}

@@ -1,5 +1,5 @@
 from fastapi.security import OAuth2PasswordBearer
-from core.database import get_database_connection, get_user_by_email_db, create_user_db
+from core.database import  get_user_by_email_db, create_user_db
 from utils.security import criar_hash_senha, criar_JWT_token
 from models.user_model import UserCreate, UserDB, TokenResponse
 from fastapi import HTTPException, status, Depends

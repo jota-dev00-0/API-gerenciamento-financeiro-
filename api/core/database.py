@@ -3,7 +3,9 @@ import sqlite3
 from typing import Optional, List, Dict
 from dotenv import load_dotenv
 from models.transacao_model import TransacaoUpdate, TransacaoCreate, Transacao
+from models.user_model import UserDB, UserCreate
 from datetime import datetime
+from utils.security import criar_hash_senha 
 
 
 
@@ -80,7 +82,7 @@ def update_transacao (transacao_id : int , update_data : TransacaoUpdate, user_i
             return None
         
         values.append([transacao_id, user_id])
-        query = f"UPDATE transacao SET {",".join(set_clause)} WHERE id = ? AND user_id = ?"
+        query = f"UPDATE transacao SET {','.join(set_clause)} WHERE id = ? AND user_id = ?"
         cursor.execute(query, tuple(values))
         conn.commit()
         
@@ -134,3 +136,40 @@ def get_saldo (user_id : str) -> Dict[str, float]:
     finally:
         conn.close()
         
+def create_user_db( user_data : UserCreate) -> UserDB:
+    conn = get_database_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("INSERT INTO user (nome, email, senha) VALUES (?, ? , ?)",
+                       (
+                        user_data.nome,
+                        user_data.email,
+                        user_data.senha
+                       ))
+        conn.commit()
+        last_user_id = cursor.lastrowid
+        cursor.execute("SELECT * FROM user WHERE id = ? ", (last_user_id,))
+        user_created = cursor.fetchone
+        user_dict = {
+            "id": user_created[0],
+            "nome": user_created[1],
+            "email": user_created[2],
+            "senha_hash": user_created[3]
+        }
+        
+        
+        return UserDB(**user_dict)
+    finally:
+        conn.close()
+    
+        
+def get_user_by_email_db(email : str) -> Optional[UserDB]:
+    conn = get_database_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM user WHERE email = ?", (email,))
+        user = cursor.fetchone
+        return UserDB(**dict(user) if user else "usuário inexistente")
+    finally:
+        conn.close()
