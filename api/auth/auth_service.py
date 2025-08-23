@@ -1,3 +1,4 @@
+import sqlite3
 from fastapi.security import OAuth2PasswordBearer
 from core.database import  get_user_by_email_db, create_user_db
 from utils.security import criar_hash_senha, criar_JWT_token
@@ -35,24 +36,37 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> str:
     return user_id
 
 def create_user(nome: str, email: str, senha_hash: str) -> UserDB:
-    return create_user_db(nome, email, senha_hash)
+    return create_user_db({
+    "nome": nome,
+    "email": email,
+    "senha_hash": senha_hash
+})
     
     
 def register_user(user_data : UserCreate) -> UserDB:
-    existing_user = get_user_by_email(user_data.email)
-    if existing_user:
-        raise HTTPException(
-            status_code= status.HTTP_400_BAD_REQUEST,
-            detail= "Email ja cadastrado"
-        )  
-    
-    senha_hash = criar_hash_senha(user_data.senha)
-    
-    novo_usuario = create_user(
-        nome=user_data.nome,
-        email=user_data.email,
-        senha=senha_hash
-    )
+    try:
+        existing_user = get_user_by_email(user_data.email)
+        if existing_user:
+            raise HTTPException(
+                status_code= status.HTTP_400_BAD_REQUEST,
+                detail= "Email ja cadastrado"
+            )  
+        
+        senha_hash = criar_hash_senha(user_data.senha)
+        
+        novo_usuario = create_user(
+            nome=user_data.nome,
+            email=user_data.email,
+            senha_hash=senha_hash
+        )
+    except sqlite3.IntegrityError as e:
+        if "UNIQUE constraint failed: user.email" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email já cadastrado"
+            )
+        # Re-raise other integrity errors
+        raise
     
     return novo_usuario
 

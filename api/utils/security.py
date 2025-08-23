@@ -2,6 +2,7 @@ from models.user_model import UserCreate
 from dotenv import load_dotenv
 from os import getenv
 from passlib.context import CryptContext
+from pydantic import SecretStr
 from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta
@@ -17,13 +18,14 @@ pwd_context = CryptContext(schemes=["bcrypt"],deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 # VARIAVEL SERA USADA EM ROTAS PROTEGIDAS 
 
-def criar_hash_senha(senha : str) -> str:
-    return pwd_context.hash(senha)
+def criar_hash_senha(senha : str | SecretStr) -> str:
+    senha_str = senha.get_secret_value() if isinstance(senha, SecretStr) else senha
+    return pwd_context.hash(senha_str)
 
-def verificar_senha (senha_padrao : str, senha_hash : str) -> bool:
-    return pwd_context.verify(senha_padrao, senha_hash)
-
-
+def verificar_senha (senha_plana : str | SecretStr , senha_hash : str) -> bool:
+    senha_str = senha_plana.get_secret_value() if isinstance(senha_plana, SecretStr) else senha_plana
+    return pwd_context.verify(senha_plana, senha_hash)
+                              
 def criar_JWT_token (subject: str | int) -> str:
     expiracao = datetime.now() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {

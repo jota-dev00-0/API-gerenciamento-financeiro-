@@ -8,13 +8,45 @@ from datetime import datetime
 from utils.security import criar_hash_senha 
 
 
+load_dotenv()
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+DB_DIR = os.path.join(BASE_DIR, "database")
+DB_PATH = os.path.join(DB_DIR, "financas.sqlite")
+SQL_SCRIPT_PATH = os.path.join(BASE_DIR, "database", "financas.sql")
+
+
+os.makedirs(DB_DIR, exist_ok=True)
+
+
+with open(SQL_SCRIPT_PATH, "r", encoding="utf-8") as f:
+    sql_script = f.read()  
+
+
+conn = sqlite3.connect(DB_PATH)
+conn.executescript(sql_script)
+conn.commit()
+conn.close()
+
+print(f"Banco de dados criado com sucesso em: {DB_PATH}")
+    
+    
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 def get_database_connection():
-    load_dotenv()
-    DATABASE_PATH = os.getenv("DATABASE")
-    conn = sqlite3.connect(DATABASE_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    print(f"DB_DIR existe: {os.path.exists(DB_DIR)}")
+    print(f"DB_DIR tem permissão de escrita: {os.access(DB_DIR, os.W_OK)}")
+    print(f"SQL_SCRIPT_PATH existe: {os.path.exists(SQL_SCRIPT_PATH)}")
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        return conn
+    except sqlite3.Error as e:
+        print(f"Erro ao conectar com o banco: {e}")
+        print(f"Caminho tentado: {DB_PATH}")
+        raise
     
 
 def get_transacaoes (user_id: str, tipo : Optional[str] = None) -> List[Transacao]:
@@ -136,30 +168,32 @@ def get_saldo (user_id : str) -> Dict[str, float]:
     finally:
         conn.close()
         
-def create_user_db( user_data : UserCreate) -> UserDB:
+def create_user_db( user_data : dict) -> UserDB:
     conn = get_database_connection()
     cursor = conn.cursor()
     
     try:
         cursor.execute("INSERT INTO user (nome, email, senha) VALUES (?, ? , ?)",
                        (
-                        user_data.nome,
-                        user_data.email,
-                        user_data.senha
+                        user_data["nome"],
+                        user_data["email"],
+                        user_data["senha_hash"]
                        ))
         conn.commit()
         last_user_id = cursor.lastrowid
         cursor.execute("SELECT * FROM user WHERE id = ? ", (last_user_id,))
-        user_created = cursor.fetchone
-        user_dict = {
-            "id": user_created[0],
-            "nome": user_created[1],
-            "email": user_created[2],
-            "senha_hash": user_created[3]
-        }
+        user_created = cursor.fetchone()
+        
+        if user_created:
+            return UserDB(
+                id=user_created["id"],
+                nome=user_created["nome"],
+                email=user_created["email"],
+                senha_hash=user_created["senha"],
+            )
         
         
-        return UserDB(**user_dict)
+        return None
     finally:
         conn.close()
     
@@ -168,8 +202,22 @@ def get_user_by_email_db(email : str) -> Optional[UserDB]:
     conn = get_database_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT * FROM user WHERE email = ?", (email,))
-        user = cursor.fetchone
-        return UserDB(**dict(user) if user else "usuário inexistente")
-    finally:
+        cursor.execute(
+            "SELECT id, nome, email, senha FROM user WHERE email = ?", 
+            (email,)
+        )
+        user = cursor.fetchone()
         conn.close()
+        
+        if user:
+            return UserDB(
+                id=user['id'],
+                nome=user['nome'],
+                email=user['email'],
+                senha_hash=user['senha']
+            )
+        return None  # ← Retorne None, não uma string
+    except Exception as e:
+        conn.close()
+        print(f"Erro ao buscar usuário por email: {e}")
+        return None
